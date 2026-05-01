@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 // ─── 令和8年度 協会けんぽ保険料率（従業員折半） ──
 // 出典: 全国健康保険協会 令和8年度保険料額表（令和8年3月分から）
@@ -14,9 +14,9 @@ const KENPO_RATES = {
   "佐賀":5.275,"長崎":5.03,"熊本":5.04,"大分":5.04,"宮崎":4.885,
   "鹿児島":5.065,"沖縄":4.72
 };
-const KAIGO_RATE  = 0.81;   // 介護保険料 1.62% ÷ 2（全国一律）
-const KOSODATE_RATE = 0.115; // 子ども・子育て支援金 0.23% ÷ 2（令和8年4月分〜新設）
-const KOYO_RATES  = { "一般":0.5, "農林水産・清酒製造":0.6, "建設":0.6 };
+const KAIGO_RATE    = 0.81;   // 介護保険料 1.62% ÷ 2（全国一律）
+const KOSODATE_RATE = 0.115;  // 子ども・子育て支援金 0.23% ÷ 2（令和8年4月分〜新設）
+const KOYO_RATES    = { "一般":0.5, "農林水産・清酒製造":0.6, "建設":0.6 };
 const KENPO_GRADES = [
   58000,68000,78000,88000,98000,104000,110000,118000,126000,134000,
   142000,150000,160000,170000,180000,190000,200000,220000,240000,260000,
@@ -57,6 +57,42 @@ function calcWithholding(monthlyTaxable, dep) {
   return Math.max(Math.floor(Math.floor(H*1.021)/12), 0);
 }
 
+// ─── 共通の小コンポーネント ──
+function Row({ label, sub, val, color, bold, note, last }) {
+  return (
+    <div style={{
+      display:"flex", justifyContent:"space-between", alignItems:"center",
+      padding:"9px 0",
+      borderBottom: last ? "none" : "1px solid #f0ede8",
+    }}>
+      <div>
+        <span style={{fontSize:13, fontWeight:bold?700:400, color:bold?"#1a1a2e":"#555"}}>
+          {label}
+        </span>
+        {sub && <span style={{fontSize:10, color:"#ccc", marginLeft:5}}>{sub}</span>}
+        {note && <span style={{fontSize:10, color:"#ccc", marginLeft:5}}>{note}</span>}
+      </div>
+      <span style={{
+        fontSize: bold ? 15 : 13, fontWeight:700, color,
+        fontVariantNumeric:"tabular-nums", transition:"all 0.15s",
+      }}>
+        ¥{fmt(val)}
+      </span>
+    </div>
+  );
+}
+
+function CardLabel({ children }) {
+  return (
+    <div style={{
+      fontSize:10, color:"#aaa", letterSpacing:"0.1em",
+      fontWeight:700, textTransform:"uppercase", marginBottom:14,
+    }}>
+      {children}
+    </div>
+  );
+}
+
 export default function App() {
   const [monthly, setMonthly] = useState("");
   const [commute, setCommute] = useState("");
@@ -65,6 +101,16 @@ export default function App() {
   const [koyo, setKoyo]       = useState("一般");
   const [deps, setDeps]       = useState(0);
   const [jumin, setJumin]     = useState("");
+
+  // PC / モバイル判定
+  const [isDesktop, setIsDesktop] = useState(
+    typeof window !== "undefined" ? window.innerWidth >= 900 : true
+  );
+  useEffect(() => {
+    const onResize = () => setIsDesktop(window.innerWidth >= 900);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   const m = parseInt(monthly)||0;
   const c = parseInt(commute)||0;
@@ -85,18 +131,179 @@ export default function App() {
   const net       = Math.max(m-deduct, 0);
   const netRate   = m>0 ? Math.round(net/m*100) : 0;
 
-  const rows = [
-    { label:"健康保険料", sub:`${(KENPO_RATES[pref]||4.925).toFixed(3)}%`, val:kenpo, color:"#60a5fa" },
-    ...(age==="40〜64歳" ? [{ label:"介護保険料", sub:"0.81%", val:kaigo, color:"#60a5fa" }] : []),
-    { label:"子ども・子育て支援金", sub:"0.115%", val:kosodate, color:"#60a5fa" },
-    { label:"厚生年金保険料", sub:"9.15%", val:nenkin, color:"#60a5fa" },
-    { label:"雇用保険料", sub:`${KOYO_RATES[koyo]}%`, val:koyoH, color:"#60a5fa" },
-    { label:"社会保険料 計", val:soc, color:"#a78bfa", bold:true },
-    { label:"課税対象額", val:taxableM, color:"#34d399", note:"月給 - 社保" },
-    { label:"源泉所得税", sub:`扶養${deps}人`, val:withhold, color:"#f87171" },
-    { label:"住民税", val:juminM, color:"#f87171" },
-    { label:"控除合計", val:deduct, color:"#f472b6", bold:true },
+  // 社会保険料の行
+  const socialRows = [
+    { label:"健康保険料", sub:`${(KENPO_RATES[pref]||4.925).toFixed(3)}%`, val:kenpo, color:"#1a1a2e" },
+    ...(age==="40〜64歳" ? [{ label:"介護保険料", sub:"0.81%", val:kaigo, color:"#1a1a2e" }] : []),
+    { label:"子ども・子育て支援金", sub:"0.115%", val:kosodate, color:"#1a1a2e" },
+    { label:"厚生年金保険料", sub:"9.15%", val:nenkin, color:"#1a1a2e" },
+    { label:"雇用保険料", sub:`${KOYO_RATES[koyo]}%`, val:koyoH, color:"#1a1a2e" },
+    { label:"社会保険料 計", val:soc, color:"#7c3aed", bold:true },
   ];
+  // 税金・控除の行
+  const taxRows = [
+    { label:"課税対象額", sub:"月給-社保", val:taxableM, color:"#059669" },
+    { label:"源泉所得税", sub:`扶養${deps}人`, val:withhold, color:"#1a1a2e" },
+    { label:"住民税", val:juminM, color:"#1a1a2e" },
+    { label:"控除合計", val:deduct, color:"#7c3aed", bold:true },
+  ];
+
+  // 入力カード
+  const inputCard = (
+    <div style={{
+      background:"#fff",
+      borderRadius:16,
+      padding: isDesktop ? "24px 28px" : 20,
+      boxShadow:"0 1px 3px rgba(0,0,0,0.05),0 4px 16px rgba(0,0,0,0.04)",
+    }}>
+      {isDesktop && <CardLabel>給与情報を入力</CardLabel>}
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14}}>
+        <div>
+          <label>月給額（課税手当）</label>
+          <input type="number" placeholder="300000" value={monthly} onChange={e=>setMonthly(e.target.value)}/>
+        </div>
+        <div>
+          <label>交通費（非課税）</label>
+          <input type="number" placeholder="20000" value={commute} onChange={e=>setCommute(e.target.value)}/>
+        </div>
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:14}}>
+        <div>
+          <label>都道府県</label>
+          <select value={pref} onChange={e=>setPref(e.target.value)}>
+            {PREFS.map(p=><option key={p}>{p}</option>)}
+          </select>
+        </div>
+        <div>
+          <label>年齢</label>
+          <select value={age} onChange={e=>setAge(e.target.value)}>
+            <option>40歳未満</option><option>40〜64歳</option><option>65歳以上</option>
+          </select>
+        </div>
+        <div>
+          <label>雇用保険</label>
+          <select value={koyo} onChange={e=>setKoyo(e.target.value)}>
+            <option>一般</option><option>農林水産・清酒製造</option><option>建設</option>
+          </select>
+        </div>
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+        <div>
+          <label>扶養人数</label>
+          <select value={deps} onChange={e=>setDeps(Number(e.target.value))}>
+            {[0,1,2,3,4,5].map(n=><option key={n} value={n}>{n}人</option>)}
+          </select>
+        </div>
+        <div>
+          <label>住民税（月額）</label>
+          <input type="number" placeholder="15000" value={jumin} onChange={e=>setJumin(e.target.value)}/>
+        </div>
+      </div>
+
+      {total>0 && (
+        <div style={{
+          marginTop:12,padding:"8px 12px",background:"#f8f7f4",borderRadius:8,
+          fontSize:11,color:"#888",display:"flex",gap:16,flexWrap:"wrap"
+        }}>
+          <span>健保標準報酬 <strong style={{color:"#1a1a2e"}}>¥{fmt(kStd)}</strong></span>
+          <span>厚年標準報酬 <strong style={{color:"#1a1a2e"}}>¥{fmt(nStd)}</strong></span>
+        </div>
+      )}
+    </div>
+  );
+
+  // LIVEバッジ
+  const liveBadge = (
+    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:14}}>
+      <span style={{
+        width:6,height:6,borderRadius:"50%",background:"#22c55e",
+        boxShadow:"0 0 6px #22c55e",display:"inline-block"
+      }}/>
+      <span style={{fontSize:10,color:"#22c55e",fontWeight:700,letterSpacing:"0.1em"}}>LIVE</span>
+    </div>
+  );
+
+  // 社会保険料カード
+  const socialCard = (
+    <div style={{
+      background:"#fff", borderRadius:16,
+      padding: isDesktop ? "24px 28px" : 20,
+      boxShadow:"0 1px 3px rgba(0,0,0,0.05),0 4px 16px rgba(0,0,0,0.04)",
+    }}>
+      <CardLabel>社会保険料</CardLabel>
+      {socialRows.map((r,i) => (
+        <Row key={i} {...r} last={i===socialRows.length-1}/>
+      ))}
+    </div>
+  );
+
+  // 税金・控除カード
+  const taxCard = (
+    <div style={{
+      background:"#fff", borderRadius:16,
+      padding: isDesktop ? "24px 28px" : 20,
+      boxShadow:"0 1px 3px rgba(0,0,0,0.05),0 4px 16px rgba(0,0,0,0.04)",
+    }}>
+      <CardLabel>税金・控除</CardLabel>
+      {taxRows.map((r,i) => (
+        <Row key={i} {...r} last={i===taxRows.length-1}/>
+      ))}
+    </div>
+  );
+
+  // 手取りカード
+  const netCard = (
+    <div style={{
+      background:"#1a1a2e", borderRadius:16,
+      padding: isDesktop ? "28px 32px" : 20,
+      boxShadow:"0 4px 24px rgba(26,26,46,0.2)",
+    }}>
+      <div style={{
+        fontSize:10,color:"#555",letterSpacing:"0.12em",
+        fontWeight:700,marginBottom:8
+      }}>
+        差引支給額（手取り）
+      </div>
+      <div style={{
+        fontSize: isDesktop ? 56 : 40,
+        fontWeight: isDesktop ? 400 : 700,
+        color:"#fff", letterSpacing:"-0.02em",
+        fontFamily:"'DM Serif Display',serif",
+        marginBottom:16, transition:"all 0.15s",
+      }}>
+        ¥{fmt(net)}
+      </div>
+
+      <div style={{
+        background:"rgba(255,255,255,0.07)",borderRadius:6,height:6,overflow:"hidden",marginBottom:16
+      }}>
+        <div style={{
+          height:"100%",borderRadius:6,
+          background:"linear-gradient(90deg,#60a5fa,#a78bfa)",
+          width:`${netRate}%`,transition:"width 0.4s",
+        }}/>
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,textAlign:"center"}}>
+        {[
+          {label:"手取り率",val:`${netRate}%`,color:"#fff"},
+          {label:"控除合計",val:`¥${fmt(deduct)}`,color:"#c084fc"},
+          {label:"年間手取り",val:`¥${fmt(net*12)}`,color:"#60a5fa"},
+        ].map(({label,val,color})=>(
+          <div key={label} style={{
+            background:"rgba(255,255,255,0.05)",borderRadius:10,
+            padding: isDesktop ? "12px 8px" : "8px 4px"
+          }}>
+            <div style={{fontSize:11,color:"#555",marginBottom:3}}>{label}</div>
+            <div style={{fontSize:15,fontWeight:700,color,transition:"all 0.15s"}}>{val}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <div style={{
@@ -114,163 +321,93 @@ export default function App() {
           outline:none; transition:all 0.2s; font-family:inherit;
           appearance:none; -webkit-appearance:none;
         }
-        input:focus,select:focus{ border-color:#1a1a2e; box-shadow:0 0 0 3px rgba(26,26,46,0.08); }
-        label{ font-size:11px; color:#888; margin-bottom:5px; display:block; font-weight:500; letter-spacing:0.06em; text-transform:uppercase; }
-        @keyframes fadeUp{ from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
-        .row-item{ animation:fadeUp 0.3s ease both; }
+        input:focus,select:focus{
+          border-color:#1a1a2e; box-shadow:0 0 0 3px rgba(26,26,46,0.08);
+        }
+        label{
+          font-size:11px; color:#999; margin-bottom:5px; display:block;
+          font-weight:500; letter-spacing:0.06em; text-transform:uppercase;
+        }
       `}</style>
 
       {/* ヘッダー */}
-      <div style={{background:"#1a1a2e",padding:"28px 20px 24px",color:"#fff"}}>
-        <div style={{maxWidth:480,margin:"0 auto"}}>
-          <div style={{fontSize:10,letterSpacing:"0.2em",color:"#888",marginBottom:6}}>SALARY CALCULATOR</div>
-          <h1 style={{fontFamily:"'DM Serif Display',serif",fontSize:26,fontWeight:400,lineHeight:1.2,marginBottom:4}}>
-            給与計算シミュレーター
-          </h1>
-          <p style={{fontSize:11,color:"#555"}}>令和8年度（2026年）協会けんぽ対応</p>
+      <div style={{
+        background:"#1a1a2e",
+        padding: isDesktop ? "36px 48px" : "28px 20px 24px",
+        color:"#fff",
+      }}>
+        <div style={{
+          maxWidth:1140, margin:"0 auto",
+          display:"flex",
+          alignItems: isDesktop ? "flex-end" : "flex-start",
+          justifyContent:"space-between",
+          flexDirection: isDesktop ? "row" : "column",
+          gap:8,
+        }}>
+          <div>
+            <div style={{fontSize:10,letterSpacing:"0.2em",color:"#555",marginBottom:6}}>
+              SALARY CALCULATOR
+            </div>
+            <h1 style={{
+              fontFamily:"'DM Serif Display',serif",
+              fontSize: isDesktop ? 40 : 26,
+              fontWeight:400, lineHeight:1.2,
+            }}>
+              給与計算シミュレーター
+            </h1>
+          </div>
+          <div style={{
+            fontSize:11, color:"#555",
+            paddingBottom: isDesktop ? 5 : 0,
+          }}>
+            令和8年度（2026年）協会けんぽ対応
+          </div>
         </div>
       </div>
 
-      <div style={{maxWidth:480,margin:"0 auto",padding:"20px 16px"}}>
+      {/* メインエリア */}
+      <div style={{
+        maxWidth:1140, margin:"0 auto",
+        padding: isDesktop ? "36px 48px" : "20px 16px",
+      }}>
+        {isDesktop ? (
+          // ─── PC版: 左に入力、右に結果(2カラム) ──
+          <div style={{
+            display:"grid",
+            gridTemplateColumns:"1fr 1fr",
+            gap:28,
+            alignItems:"start",
+          }}>
+            {/* 左カラム: 入力 */}
+            {inputCard}
 
-        {/* 入力カード */}
-        <div style={{background:"#fff",borderRadius:16,padding:20,marginBottom:16,
-          boxShadow:"0 1px 3px rgba(0,0,0,0.06),0 4px 16px rgba(0,0,0,0.04)"}}>
-
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14}}>
+            {/* 右カラム: LIVE + 社会保険料/税金 + 手取り */}
             <div>
-              <label>月給額（課税手当）</label>
-              <input type="number" placeholder="300,000" value={monthly} onChange={e=>setMonthly(e.target.value)}/>
-            </div>
-            <div>
-              <label>交通費（非課税）</label>
-              <input type="number" placeholder="20,000" value={commute} onChange={e=>setCommute(e.target.value)}/>
-            </div>
-          </div>
-
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:14}}>
-            <div>
-              <label>都道府県</label>
-              <select value={pref} onChange={e=>setPref(e.target.value)}>
-                {PREFS.map(p=><option key={p}>{p}</option>)}
-              </select>
-            </div>
-            <div>
-              <label>年齢</label>
-              <select value={age} onChange={e=>setAge(e.target.value)}>
-                <option>40歳未満</option><option>40〜64歳</option><option>65歳以上</option>
-              </select>
-            </div>
-            <div>
-              <label>雇用保険</label>
-              <select value={koyo} onChange={e=>setKoyo(e.target.value)}>
-                <option>一般</option><option>農林水産・清酒製造</option><option>建設</option>
-              </select>
-            </div>
-          </div>
-
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-            <div>
-              <label>扶養人数</label>
-              <select value={deps} onChange={e=>setDeps(Number(e.target.value))}>
-                {[0,1,2,3,4,5].map(n=><option key={n} value={n}>{n}人</option>)}
-              </select>
-            </div>
-            <div>
-              <label>住民税（月額）</label>
-              <input type="number" placeholder="15,000" value={jumin} onChange={e=>setJumin(e.target.value)}/>
-            </div>
-          </div>
-
-          {/* 標準報酬メモ */}
-          {total>0&&(
-            <div style={{marginTop:12,padding:"8px 12px",background:"#f8f7f4",borderRadius:8,
-              fontSize:11,color:"#888",display:"flex",gap:16}}>
-              <span>健保標準報酬 <strong style={{color:"#1a1a2e"}}>¥{fmt(kStd)}</strong></span>
-              <span>厚年標準報酬 <strong style={{color:"#1a1a2e"}}>¥{fmt(nStd)}</strong></span>
-            </div>
-          )}
-        </div>
-
-        {/* LIVE バッジ */}
-        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:12}}>
-          <span style={{width:6,height:6,borderRadius:"50%",background:"#22c55e",
-            boxShadow:"0 0 5px #22c55e",animation:"fadeUp 0s",display:"inline-block"}}/>
-          <span style={{fontSize:10,color:"#22c55e",fontWeight:700,letterSpacing:"0.1em"}}>LIVE</span>
-        </div>
-
-        {/* 控除一覧 */}
-        <div style={{background:"#fff",borderRadius:16,padding:20,marginBottom:14,
-          boxShadow:"0 1px 3px rgba(0,0,0,0.06),0 4px 16px rgba(0,0,0,0.04)"}}>
-          <div style={{fontSize:10,color:"#888",letterSpacing:"0.12em",fontWeight:700,textTransform:"uppercase",marginBottom:14}}>
-            控除内訳
-          </div>
-
-          {rows.map(({label,sub,val,color,bold,note},i)=>(
-            <div key={i} className="row-item" style={{
-              display:"flex",justifyContent:"space-between",alignItems:"center",
-              padding:"9px 0",
-              borderBottom: i<rows.length-1 ? "1px solid #f0ede8" : "none",
-              animationDelay:`${i*0.03}s`,
-            }}>
-              <div>
-                <span style={{fontSize:13,fontWeight:bold?700:400,color:bold?"#1a1a2e":"#444"}}>
-                  {label}
-                </span>
-                {sub&&<span style={{fontSize:10,color:"#aaa",marginLeft:5}}>{sub}</span>}
-                {note&&<span style={{fontSize:10,color:"#aaa",marginLeft:5}}>{note}</span>}
-              </div>
-              <span style={{
-                fontSize: bold?15:13,
-                fontWeight:700,
-                color,
-                fontVariantNumeric:"tabular-nums",
-                transition:"all 0.15s",
+              {liveBadge}
+              <div style={{
+                display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16
               }}>
-                ¥{fmt(val)}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        {/* 手取りカード */}
-        <div style={{
-          background:"#1a1a2e",borderRadius:16,padding:"20px",
-          boxShadow:"0 4px 24px rgba(26,26,46,0.2)",
-        }}>
-          <div style={{fontSize:10,color:"#555",letterSpacing:"0.12em",fontWeight:700,marginBottom:8}}>
-            差引支給額（手取り）
-          </div>
-          <div style={{fontSize:40,fontWeight:700,color:"#fff",letterSpacing:"-0.02em",
-            fontFamily:"'DM Serif Display',serif",transition:"all 0.15s"}}>
-            ¥{fmt(net)}
-          </div>
-
-          {/* プログレスバー */}
-          <div style={{marginTop:14,background:"rgba(255,255,255,0.08)",borderRadius:6,height:6,overflow:"hidden"}}>
-            <div style={{
-              height:"100%",borderRadius:6,
-              background:"linear-gradient(90deg,#60a5fa,#a78bfa)",
-              width:`${netRate}%`,transition:"width 0.4s ease",
-            }}/>
-          </div>
-
-          {/* 月給の内訳 */}
-          <div style={{marginTop:12,display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,textAlign:"center"}}>
-            {[
-              {label:"手取り率",val:`${netRate}%`,color:"#fff"},
-              {label:"控除合計",val:`¥${fmt(deduct)}`,color:"#f472b6"},
-              {label:"年間手取り",val:`¥${fmt(net*12)}`,color:"#60a5fa"},
-            ].map(({label,val,color})=>(
-              <div key={label} style={{background:"rgba(255,255,255,0.05)",borderRadius:8,padding:"8px 4px"}}>
-                <div style={{fontSize:9,color:"#555",marginBottom:2}}>{label}</div>
-                <div style={{fontSize:12,fontWeight:700,color,transition:"all 0.15s"}}>{val}</div>
+                {socialCard}
+                {taxCard}
               </div>
-            ))}
+              {netCard}
+            </div>
           </div>
-        </div>
+        ) : (
+          // ─── モバイル版: 縦積み ──
+          <>
+            <div style={{marginBottom:16}}>{inputCard}</div>
+            {liveBadge}
+            <div style={{marginBottom:14}}>{socialCard}</div>
+            <div style={{marginBottom:14}}>{taxCard}</div>
+            {netCard}
+          </>
+        )}
 
-        <p style={{fontSize:10,color:"#bbb",textAlign:"center",marginTop:14,lineHeight:1.8}}>
+        <p style={{
+          fontSize:10, color:"#ccc", textAlign:"center",
+          marginTop: isDesktop ? 28 : 14, lineHeight:1.8,
+        }}>
           ※概算です。標準報酬月額の改定・保険組合により異なります<br/>
           令和8年度 協会けんぽ料率使用（子ども・子育て支援金は令和8年4月分〜）
         </p>
