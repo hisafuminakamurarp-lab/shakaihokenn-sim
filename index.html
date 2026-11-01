@@ -102,6 +102,50 @@
 
   .foot{font-size:10px;color:var(--faint);text-align:center;line-height:1.9;margin-top:6px;}
 
+  /* 賞与（ボーナス）入力 */
+  .bhead{display:grid;grid-template-columns:52px 86px 1fr 34px;gap:8px;margin-bottom:4px;}
+  .bhead label{margin:0;}
+  .brow{display:grid;grid-template-columns:52px 86px 1fr 34px;gap:8px;align-items:center;margin-bottom:8px;}
+  .brow .bname{font-size:12px;color:var(--gold);font-weight:700;white-space:nowrap;}
+  .brow select{padding:9px 6px;}
+  .bdel{background:transparent;border:1px solid var(--line-soft);color:var(--dim);border-radius:8px;
+    height:38px;font-size:16px;cursor:pointer;font-family:inherit;transition:color .2s,border-color .2s;}
+  .bdel:hover{color:var(--red);border-color:var(--red);}
+  .addbtn{width:100%;background:rgba(201,168,76,.08);border:1px dashed var(--gold);color:var(--gold);
+    border-radius:8px;padding:9px 12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;
+    letter-spacing:.04em;transition:background .2s;}
+  .addbtn:hover{background:rgba(201,168,76,.16);}
+  .bempty{font-size:12px;color:var(--dim);padding:4px 0 10px;}
+
+  /* 表示切替タブ */
+  .tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:rgba(0,0,0,.25);
+    border:1px solid var(--line);border-radius:12px;padding:4px;margin-bottom:14px;}
+  .tabs button{background:transparent;border:none;color:var(--muted);font-family:inherit;font-size:13px;
+    font-weight:700;padding:8px 4px;border-radius:9px;cursor:pointer;letter-spacing:.04em;transition:background .2s,color .2s;}
+  .tabs button.on{background:var(--bg-1);color:var(--text);box-shadow:0 0 0 1px var(--line-soft);}
+  .tabs button .cnt{font-size:10px;color:var(--gold);margin-left:3px;}
+
+  .hero.year{background:linear-gradient(135deg,#1e3a8a,#1d4ed8);border-color:var(--cyan);box-shadow:0 0 24px rgba(56,189,248,.15);}
+  .hero.bonus{background:linear-gradient(135deg,#713f12,#a16207);border-color:var(--gold);box-shadow:0 0 24px rgba(201,168,76,.15);}
+
+  /* 1年分の表 */
+  .atable .ar{display:grid;grid-template-columns:1.25fr 1fr 1fr 1fr;gap:6px;align-items:baseline;
+    padding:6px 0;border-bottom:1px solid #0f1729;font-size:12px;}
+  .atable .ar > span:not(:first-child){text-align:right;font-family:"JetBrains Mono",monospace;font-feature-settings:"tnum";}
+  .atable .ar.th{font-size:10px;color:var(--faint);letter-spacing:.04em;border-bottom:1px solid var(--line-soft);}
+  .atable .ar.th > span{font-family:inherit !important;}
+  .atable .ar .k{color:var(--muted);}
+  .atable .ar .k small{display:block;color:var(--faint);font-size:10px;}
+  .atable .ar.sub{font-size:11px;padding:3px 0 3px 10px;border-bottom:none;color:var(--dim);}
+  .atable .ar.sub .k{color:var(--dim);}
+  .atable .ar .tot{font-weight:700;color:var(--text);}
+  .atable .ar.total{margin-top:4px;padding-top:9px;border-top:1px solid var(--line-soft);border-bottom:none;font-size:13px;}
+  .atable .ar.total .k{color:var(--text);font-weight:700;}
+  .atable .ar.net{background:rgba(74,222,128,.06);border-radius:8px;padding:9px 6px;margin-top:6px;border-bottom:none;font-size:13px;}
+  .atable .ar.net .k{color:var(--green);font-weight:700;}
+  .atable .ar.net .tot{color:var(--green);}
+  .bcard h3 .amt{float:right;color:var(--gold);font-family:"JetBrains Mono",monospace;}
+
   @media (min-width:768px){
     .wrap{max-width:1040px;}
     .twocol{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start;}
@@ -116,7 +160,7 @@
     <div>
       <div class="eyebrow">SALARY CALCULATOR</div>
       <h1>給与計算シミュレーション</h1>
-      <div class="sub">社会保険料・税金の月次計算</div>
+      <div class="sub">社会保険料・税金の月次・賞与・年間計算</div>
     </div>
     <div class="ver">令和8年度（2026年）<br>協会けんぽ対応</div>
   </div>
@@ -178,6 +222,15 @@
           健保 標準報酬 <b class="num" id="stdK" style="color:var(--text)">¥0</b>　／　厚年 標準報酬 <b class="num" id="stdN" style="color:var(--text)">¥0</b>
         </div>
       </div>
+
+      <div class="card">
+        <div class="sec">賞与（ボーナス）</div>
+        <div class="bhead" id="bonusHead"><label></label><label>支給月</label><label>支給額（税・社保引く前）</label><label></label></div>
+        <div id="bonusList"></div>
+        <button type="button" class="addbtn" id="addBonus">＋ ボーナスを追加</button>
+        <div class="hint">回数は自由に増やせます（夏・冬・決算賞与など）。金額を空欄にした行は計算に含めません。住民税は賞与からは引かれません。</div>
+        <div class="hint" id="bonusWarn" style="display:none;color:var(--amber);">年4回以上の賞与は本来「報酬」として標準報酬月額に含めて計算します。本ツールではすべて賞与として概算しています。</div>
+      </div>
     </div>
 
     <!-- 結果 -->
@@ -189,6 +242,13 @@
       </div>
 
       <div id="results" style="display:none;">
+        <div class="tabs" role="tablist">
+          <button type="button" data-tab="month" class="on">毎月</button>
+          <button type="button" data-tab="bonus">ボーナス<span class="cnt" id="bonusCnt"></span></button>
+          <button type="button" data-tab="year">1年分</button>
+        </div>
+
+      <div id="panel-month" class="panel">
         <div class="hero">
           <div class="lbl">差引支給額（月の手取り）</div>
           <div class="big num" id="tedori">¥0</div>
@@ -236,14 +296,60 @@
             <span class="k">控除合計</span>
             <span class="v num" id="deductTotal">¥0</span>
           </div>
-          <div class="hint" style="text-align:right;margin-top:6px;">年換算 手取り <span class="num" id="annual">¥0</span></div>
+          <div class="hint" style="text-align:right;margin-top:6px;">年換算 手取り（賞与込み） <span class="num" id="annual">¥0</span>　<a href="#" id="toYear" style="color:var(--cyan);">1年分を見る →</a></div>
         </div>
+      </div>
+
+      <!-- ボーナス -->
+      <div id="panel-bonus" class="panel" style="display:none;">
+        <div id="bonusEmpty" class="hero empty">
+          <div class="placeholder">「賞与（ボーナス）」欄に支給額を入力すると、<br>1回ごとの手取りを計算します</div>
+        </div>
+        <div id="bonusResults" style="display:none;">
+          <div class="hero bonus">
+            <div class="lbl">ボーナスの手取り（年間合計）</div>
+            <div class="big num" id="bTedoriTotal">¥0</div>
+            <div class="bar"><i id="bTedoriBar" style="width:0%"></i></div>
+            <div class="rate"><b id="bTedoriRate">0%</b> 手取り率（対 賞与支給額 <span class="num" id="bGrossTotal">¥0</span>）</div>
+          </div>
+          <div id="bonusCards"></div>
+        </div>
+      </div>
+
+      <!-- 1年分 -->
+      <div id="panel-year" class="panel" style="display:none;">
+        <div class="hero year">
+          <div class="lbl">年間の手取り（毎月の給与×12 ＋ ボーナス）</div>
+          <div class="big num" id="yTedori">¥0</div>
+          <div class="bar"><i id="yTedoriBar" style="width:0%"></i></div>
+          <div class="rate"><b id="yTedoriRate">0%</b> 手取り率（対 年間総支給）　月平均 <b class="num" id="yMonthly">¥0</b></div>
+        </div>
+
+        <div class="summary">
+          <div class="mini">
+            <div class="l">年収（額面）</div>
+            <div class="v num v-text" id="yNenshu">¥0</div>
+            <div class="hint" style="margin-top:2px;">交通費を除く課税支給額</div>
+          </div>
+          <div class="mini">
+            <div class="l">控除合計（年間）</div>
+            <div class="v num" id="yDeduct" style="color:var(--pink)">¥0</div>
+            <div class="hint" style="margin-top:2px;">社保＋所得税＋住民税</div>
+          </div>
+        </div>
+
+        <div class="breakdown atable">
+          <h3>📅 1年分の内訳</h3>
+          <div class="ar th"><span></span><span>給与×12か月</span><span>ボーナス</span><span>年間合計</span></div>
+          <div id="yRows"></div>
+        </div>
+      </div>
       </div>
     </div>
   </div>
 
   <details>
-    <summary>計算の前提と根拠（令和8年度・協会けんぽ）</summary>
+    <summary>計算の前提と根拠（令和8年度・協会けんぽ・賞与・年間）</summary>
     <div class="body">
       <ul>
         <li><b>健康保険料</b>：協会けんぽ 令和8年度の都道府県別料率（例：東京9.85%）の本人負担＝半分。報酬月額（月給＋交通費）に適用。</li>
@@ -253,8 +359,11 @@
         <li><b>雇用保険料</b>：令和8年度 本人負担 一般0.5%／農林水産・清酒製造・建設0.6%。賃金総額（月給＋交通費）に適用。</li>
         <li><b>標準報酬月額</b>：報酬月額（月給＋交通費）を健保（第1〜50等級）・厚年（第1〜32等級・上限65万円）の等級表に当てはめて算定。端数処理（50銭基準）の差で実額と数十円ずれる場合があります。</li>
         <li><b>源泉所得税</b>：年税額（給与所得控除＋基礎控除＋社保控除＋扶養控除で算出、復興特別所得税2.1%込）を12分割した概算。交通費は非課税のため除外。実際の毎月の源泉徴収は月額表（甲欄）で計算され、年末調整で精算されます。</li>
-        <li><b>住民税</b>：前年所得ベースで決まるため手入力。</li>
+        <li><b>住民税</b>：前年所得ベースで決まるため手入力。賞与からは引かれません。</li>
         <li><b>手取り</b>＝月給＋交通費 − 社会保険料 − 源泉所得税 − 住民税。</li>
+        <li><b>賞与の社会保険料</b>：支給額の千円未満を切り捨てた<b>標準賞与額</b>に、毎月と同じ料率（健保・介護・子ども子育て支援金・厚年）を掛けて計算。上限は健保・介護・支援金が<b>年度累計573万円</b>、厚生年金が<b>1回150万円</b>。雇用保険は支給額そのものに料率を掛けます。</li>
+        <li><b>賞与の源泉所得税</b>：実務では「賞与に対する源泉徴収税額の算出率の表」で天引きされ、年末調整で精算されます。本ツールでは<b>年末調整後の年税額ベース</b>で、賞与を加えたことで増える所得税を各賞与に按分した概算を表示します（実際の天引き額とはずれますが、年間合計は年末調整後の目安になります）。</li>
+        <li><b>1年分</b>：毎月の給与を12か月分＋入力した賞与の合計。住民税は月額×12。<b>年収（額面）</b>は源泉徴収票の「支払金額」と同じく非課税の交通費を除いた金額です。</li>
       </ul>
       <p style="margin-top:8px;">数値はいずれも<b>概算</b>です。標準報酬月額の改定・健康保険組合・端数処理により実際の金額と異なります。正確な計算は給与担当・社労士にご確認ください。</p>
     </div>
@@ -326,6 +435,77 @@
     el.addEventListener("change", calc);
   });
 
+  // ── 賞与（ボーナス）行の追加・削除 ──
+  var MARKS = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳";
+  var bonusList = $("bonusList");
+  function monthOptions(sel){
+    var h = '<option value="">未定</option>';
+    for (var m = 1; m <= 12; m++){
+      h += '<option value="' + m + '"' + (m === sel ? " selected" : "") + ">" + m + "月</option>";
+    }
+    return h;
+  }
+  function bonusLabel(i){ return "賞与" + (MARKS.charAt(i) || "(" + (i + 1) + ")"); }
+  function renumberBonus(){
+    var rows = bonusList.querySelectorAll(".brow");
+    for (var i = 0; i < rows.length; i++) rows[i].querySelector(".bname").textContent = bonusLabel(i);
+    $("bonusHead").style.display = rows.length ? "grid" : "none";
+    $("bonusWarn").style.display = rows.length >= 4 ? "block" : "none";
+  }
+  function addBonusRow(month, focus){
+    var row = document.createElement("div");
+    row.className = "brow";
+    row.innerHTML =
+      '<div class="bname"></div>' +
+      '<select class="bmonth" aria-label="支給月">' + monthOptions(month) + "</select>" +
+      '<input type="number" class="bamt" inputmode="numeric" placeholder="500000" aria-label="賞与の支給額">' +
+      '<button type="button" class="bdel" aria-label="このボーナスを削除" title="削除">×</button>';
+    bonusList.appendChild(row);
+    renumberBonus();
+    if (focus) row.querySelector(".bamt").focus();
+  }
+  bonusList.addEventListener("input", calc);
+  bonusList.addEventListener("change", calc);
+  bonusList.addEventListener("click", function(e){
+    if (!e.target.classList.contains("bdel")) return;
+    bonusList.removeChild(e.target.closest(".brow"));
+    renumberBonus();
+    calc();
+  });
+  $("addBonus").addEventListener("click", function(){
+    var n = bonusList.querySelectorAll(".brow").length;
+    addBonusRow(n === 0 ? 6 : n === 1 ? 12 : 0, true);
+    calc();
+  });
+  // 初期表示：夏・冬の2回分の枠
+  addBonusRow(6); addBonusRow(12);
+
+  function readBonuses(){
+    var rows = bonusList.querySelectorAll(".brow"), out = [];
+    for (var i = 0; i < rows.length; i++){
+      var v = parseFloat(rows[i].querySelector(".bamt").value);
+      if (isNaN(v) || v <= 0) continue;
+      var m = rows[i].querySelector(".bmonth").value;
+      out.push({ label: bonusLabel(i), month: m ? m + "月" : "", amount: v });
+    }
+    return out;
+  }
+
+  // ── 表示切替タブ ──
+  var tabBtns = document.querySelectorAll(".tabs button");
+  function showTab(name){
+    for (var i = 0; i < tabBtns.length; i++){
+      var on = tabBtns[i].getAttribute("data-tab") === name;
+      tabBtns[i].classList.toggle("on", on);
+      tabBtns[i].setAttribute("aria-selected", on ? "true" : "false");
+      $("panel-" + tabBtns[i].getAttribute("data-tab")).style.display = on ? "block" : "none";
+    }
+  }
+  for (var t = 0; t < tabBtns.length; t++){
+    tabBtns[t].addEventListener("click", function(){ showTab(this.getAttribute("data-tab")); });
+  }
+  $("toYear").addEventListener("click", function(e){ e.preventDefault(); showTab("year"); });
+
   function yen(n){
     n = Math.round(n);
     var sign = n < 0 ? "-" : "";
@@ -367,6 +547,16 @@
     if (g <= 25000000) return 160000;
     return 0;
   }
+  // 年税額（年間の課税支給額・年間の社会保険料から。復興特別所得税込み）
+  function annualTax(salaryYear, shahoYear, fuyo){
+    var income  = Math.max(0, salaryYear - kyuyoKojo(salaryYear)); // 給与所得
+    var taxable = Math.max(0, income - kisoIncome(income) - shahoYear - fuyo * 380000);
+    taxable = Math.floor(taxable / 1000) * 1000;
+    return incomeTax(taxable);
+  }
+
+  var HEALTH_BONUS_CAP  = 5730000;  // 健保・介護・支援金の標準賞与額 上限（年度累計）
+  var PENSION_BONUS_CAP = 1500000;  // 厚生年金の標準賞与額 上限（1回あたり）
 
   function calc(){
     var kyuyo = num("kyuyo");   // 月給（課税）
@@ -404,15 +594,8 @@
     // 課税対象（月給 − 社保、交通費は非課税で除外）
     var kazei = Math.max(0, kyuyo - shaho);
 
-    // 源泉所得税（年税額÷12の概算）
-    var annualSalary = kyuyo * 12;
-    var kyuyoIncome  = Math.max(0, annualSalary - kyuyoKojo(annualSalary)); // 給与所得
-    var shahoYear    = shaho * 12;
-    var kiso         = kisoIncome(kyuyoIncome);
-    var fuyoKojo     = fuyo * 380000;
-    var taxable      = Math.max(0, kyuyoIncome - kiso - shahoYear - fuyoKojo);
-    taxable = Math.floor(taxable/1000)*1000;
-    var shotokuzei   = Math.round(incomeTax(taxable) / 12);
+    // 源泉所得税（給与だけの年税額÷12の概算）
+    var shotokuzei   = Math.round(annualTax(kyuyo * 12, shaho * 12, fuyo) / 12);
 
     // 合計・手取り
     var deduct = shaho + shotokuzei + jumin;
@@ -445,7 +628,114 @@
     $("shotokuzei").textContent = yen(shotokuzei);
     $("juminzei").textContent = yen(jumin);
     $("deductTotal").textContent = yen(deduct);
-    $("annual").textContent = yen(tedori * 12);
+
+    // ── 賞与（ボーナス） ──
+    var bonuses = readBonuses();
+    var kCum = 0;  // 健保の標準賞与額 年度累計
+    var bs = bonuses.map(function(b){
+      var std   = Math.floor(b.amount / 1000) * 1000;            // 標準賞与額
+      var kBase = Math.max(0, Math.min(std, HEALTH_BONUS_CAP - kCum));
+      kCum += kBase;
+      var nBase = Math.min(std, PENSION_BONUS_CAP);
+      var r = {
+        label: b.label, month: b.month, amount: b.amount, std: std, kBase: kBase, nBase: nBase,
+        health:  Math.round(kBase * hRate / 2),
+        kaigo:   is40to64 ? Math.round(kBase * KAIGO_RATE / 2) : 0,
+        kodomo:  Math.round(kBase * KODOMO_RATE / 2),
+        pension: Math.round(nBase * PENSION_RATE / 2),
+        koyo:    Math.round(b.amount * koyoRate)
+      };
+      r.shaho = r.health + r.kaigo + r.kodomo + r.pension + r.koyo;
+      return r;
+    });
+    var bSum = function(key){ return bs.reduce(function(s, r){ return s + r[key]; }, 0); };
+    var bGross = bSum("amount"), bShaho = bSum("shaho");
+
+    // 賞与の所得税＝（給与＋賞与の年税額）−（給与分の源泉×12）を、賞与（社保控除後）の比で按分
+    var bTax = 0;
+    if (bs.length){
+      var taxAll = annualTax(kyuyo * 12 + bGross, shaho * 12 + bShaho, fuyo);
+      bTax = Math.max(0, taxAll - shotokuzei * 12);
+      var base = bs.reduce(function(s, r){ return s + Math.max(0, r.amount - r.shaho); }, 0);
+      var left = bTax;
+      bs.forEach(function(r, i){
+        r.tax = (i === bs.length - 1) ? left
+              : (base > 0 ? Math.round(bTax * Math.max(0, r.amount - r.shaho) / base) : 0);
+        left -= r.tax;
+        r.tedori = r.amount - r.shaho - r.tax;
+      });
+    }
+    var bTedori = bGross - bShaho - bTax;
+
+    $("bonusCnt").textContent = bs.length ? "(" + bs.length + ")" : "";
+    $("bonusEmpty").style.display = bs.length ? "none" : "block";
+    $("bonusResults").style.display = bs.length ? "block" : "none";
+    if (bs.length){
+      var bRate = bTedori / bGross * 100;
+      $("bTedoriTotal").textContent = yen(bTedori);
+      $("bTedoriBar").style.width = Math.max(0, Math.min(100, bRate)) + "%";
+      $("bTedoriRate").textContent = bRate.toFixed(1) + "%";
+      $("bGrossTotal").textContent = yen(bGross);
+      $("bonusCards").innerHTML = bs.map(function(r){
+        var capNote = [];
+        if (r.kBase < r.std) capNote.push("健保は年度上限573万円まで");
+        if (r.nBase < r.std) capNote.push("厚年は上限150万円");
+        return '<div class="breakdown bcard">' +
+          "<h3>🎁 " + r.label + (r.month ? "（" + r.month + "）" : "") +
+            '<span class="amt">' + yen(r.amount) + "</span></h3>" +
+          row("社会保険料", r.shaho, "v-cyan", "標準賞与額 " + yen(r.std) + (capNote.length ? "・" + capNote.join("・") : "")) +
+          '<div class="nest">' +
+            row("健康保険料", r.health) +
+            (is40to64 ? row("介護保険料", r.kaigo) : "") +
+            row("子ども・子育て支援金", r.kodomo) +
+            row("厚生年金保険料", r.pension) +
+            row("雇用保険料", r.koyo) +
+          "</div>" +
+          row("源泉所得税", r.tax, "v-red", "概算（年末調整後ベースで按分）") +
+          row("住民税", 0, "v-text", "賞与からは引かれません") +
+          '<div class="row total"><span class="k">手取り</span><span class="v num" style="color:var(--green)">' + yen(r.tedori) + "</span></div>" +
+        "</div>";
+      }).join("");
+    }
+
+    // ── 1年分 ──
+    var mTax = shotokuzei * 12, mJumin = jumin * 12, mShaho = shaho * 12, mGross = gross * 12;
+    var yGross  = mGross + bGross;
+    var yDeduct = mShaho + bShaho + mTax + bTax + mJumin;
+    var yTedori = yGross - yDeduct;
+    var yRate   = yGross > 0 ? yTedori / yGross * 100 : 0;
+    $("yTedori").textContent = yen(yTedori);
+    $("yTedoriBar").style.width = Math.max(0, Math.min(100, yRate)) + "%";
+    $("yTedoriRate").textContent = yRate.toFixed(1) + "%";
+    $("yMonthly").textContent = yen(yTedori / 12);
+    $("yNenshu").textContent = yen(kyuyo * 12 + bGross);
+    $("yDeduct").textContent = yen(yDeduct);
+    $("annual").textContent = yen(yTedori);
+
+    var hasB = bs.length > 0;
+    function ar(cls, k, m, b, sm){
+      return '<div class="ar ' + cls + '"><span class="k">' + k + (sm ? "<small>" + sm + "</small>" : "") + "</span>" +
+        "<span>" + yen(m) + "</span><span>" + (hasB && b !== null ? yen(b) : "—") + '</span><span class="tot">' +
+        yen(m + (b || 0)) + "</span></div>";
+    }
+    $("yRows").innerHTML =
+      ar("", "総支給額", mGross, bGross, kotsu > 0 ? "交通費込み" : "") +
+      (kotsu > 0 ? ar("sub", "うち交通費（非課税）", kotsu * 12, null) : "") +
+      ar("", "社会保険料", mShaho, bShaho) +
+      ar("sub", "健康保険料", kHealth * 12, bSum("health")) +
+      (is40to64 ? ar("sub", "介護保険料", kKaigo * 12, bSum("kaigo")) : "") +
+      ar("sub", "子ども・子育て支援金", kKodomo * 12, bSum("kodomo")) +
+      ar("sub", "厚生年金保険料", kPension * 12, bSum("pension")) +
+      ar("sub", "雇用保険料", kKoyo * 12, bSum("koyo")) +
+      ar("", "所得税", mTax, bTax, "概算（年末調整後）") +
+      ar("", "住民税", mJumin, null, "月額×12") +
+      ar("total", "控除合計", mShaho + mTax + mJumin, bShaho + bTax) +
+      ar("net", "手取り", tedori * 12, bTedori);
+  }
+
+  function row(k, v, cls, sm){
+    return '<div class="row"><span class="k">' + k + (sm ? "<small>" + sm + "</small>" : "") +
+      '</span><span class="v num ' + (cls || "") + '">' + yen(v) + "</span></div>";
   }
 
   calc();
